@@ -1,0 +1,6 @@
+# Databases
+*.db
+
+.env
+venv
+identifier.sqlite
