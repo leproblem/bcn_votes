@@ -25,8 +25,7 @@ with bc_transactions:
  bc_transactions.execute("""
         CREATE TABLE if not exists bc_votes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ballot_data str not null,
-            validation str not null
+            ballot_data str not null
          );
      """)
 
