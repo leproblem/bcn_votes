@@ -4,11 +4,17 @@ import sqlite3 as sl
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-from table import Votes
+from table import Votes, BC_Votes
 from BC_engine import Blockchain, Block
+from crypto_engine import encrypt_message
+from Crypto.Random import get_random_bytes
 
 Base = declarative_base()
 Session = sessionmaker()
+
+BC_Base = declarative_base()
+BC_Session = sessionmaker()
+blockchain = Blockchain()
 
 con = sl.connect('voting.db') #если нет файлика, то создаёт его
 bc_transactions = sl.connect('bc_votes.db')
@@ -25,7 +31,7 @@ with bc_transactions:
  bc_transactions.execute("""
         CREATE TABLE if not exists bc_votes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ballot_data str not null
+            ballot_data varchar not null
          );
      """)
 
@@ -113,6 +119,7 @@ class ORM_bc:
     def __init__(self):
         self.engine = None
         self.db_session = None
+        self.key = None
 
     def create_engine(self):
         # load_dotenv('.env')
@@ -122,6 +129,8 @@ class ORM_bc:
         # password = os.environ.get("DB_PASSWORD")
         # database_name = os.environ.get("DB_NAME")
         # self.engine = sqlalchemy.create_engine(f'mysql+pymysql://{user}:{password}@{host}:{port}/{database_name}')
+        self.key = os.environ.get("BC_KEY")
+        print(self.key)
         self.engine = sqlalchemy.create_engine('sqlite:///bc_votes.db')  # только для sqlite
 
     def set_db_session(self):
@@ -135,22 +144,25 @@ class ORM_bc:
         Session = sessionmaker(bind=engine)
         session = Session.configure(bind=engine)
         self.set_db_session()
-        voters = []
-
-        #hash calculation here
-        blockchain = Blockchain()
+        print(f'ballot is here {ballot}')
+        #block calculation here
         block = Block(f"{ballot}", blockchain.get_latest_block().hash)
         blockchain.add_block(block)
         latest_block = blockchain.get_latest_block()
+        t = latest_block.timestamp
+        t_str = t.strftime('%Y-%m-%d %H:%M:%S.%f')
+        print(f'block timestamp {t_str} is here')
+        BC_array_to_cipher = [t_str, latest_block.data, latest_block.previous_hash, latest_block.hash]
+        BC_data_joined = ','.join(BC_array_to_cipher)
+        key = get_random_bytes(32)
+        ciphertext_to_append = encrypt_message(key, BC_data_joined)
 
 
         with self.db_session() as session:
 
-            for i in session.query(Votes.voter_id).filter(Votes.ballot == ballot):
-                voters.append(i[0])
             try:
                 # Create a new Product instance
-                new_vote = Votes(ballot=latest_block.hash)
+                new_vote = BC_Votes(ballot_data=ciphertext_to_append)
 
                 # Add the product to the session
                 session.add(new_vote)
@@ -158,7 +170,7 @@ class ORM_bc:
                 # Commit the transaction to the database
                 session.commit()
 
-                print(f"Hash {ballot} registered successfully.")
+                print(f"New ciphered block {ciphertext_to_append} registered successfully.")
                 return {'status-code': 200}
             except Exception as e:
                 # Handle any exceptions (e.g., database errors)

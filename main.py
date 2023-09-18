@@ -1,7 +1,7 @@
 from api_file import api
-from orm_file import ORM
+from orm_file import ORM, ORM_bc
 import uvicorn
-
+from BC_engine import Blockchain, Block
 
 
 
@@ -21,4 +21,7 @@ if __name__ == "__main__":
     ORM = ORM()
     ORM.create_engine()
     ORM.set_db_session()
+    ORM_BC = ORM_bc()
+    ORM_BC.create_engine()
+    ORM_BC.set_db_session()
     main()
