@@ -18,3 +18,14 @@ def add_vote(voter_id: int, ballot: int):
             return {"status": "Success!"}
         case 400:
             return {"status": f"Error! {response['error-msg']}"}
+
+
+@api.get("/recieve_vote")
+def add_vote(ballot_id: int):
+    response_2 = orm_bc.find_specific_vote(ballot_id)
+    return response_2
+    match response_2['status-code']:
+        case 200:
+            return {"status": "Success!"}
+        case 400:
+            return {"status": f"Error! {response_2['error-msg']}"}
