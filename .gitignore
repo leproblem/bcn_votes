@@ -4,3 +4,5 @@
 .env
 venv
 identifier.sqlite
+__pycache__
+.idea
