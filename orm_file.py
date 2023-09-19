@@ -6,16 +6,15 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 from table import Votes, BC_Votes
 from BC_engine import Blockchain, Block
-from crypto_engine import encrypt_message, string_to_byte_array
+from crypto_engine import encrypt_message, string_to_byte_array, decrypt_message
 from Crypto.Random import get_random_bytes
 
-
+blockchain = Blockchain()
 Base = declarative_base()
 Session = sessionmaker()
 
 BC_Base = declarative_base()
 BC_Session = sessionmaker()
-blockchain = Blockchain()
 
 con = sl.connect('voting.db') #если нет файлика, то создаёт его
 
@@ -145,17 +144,19 @@ class ORM_bc:
         Session = sessionmaker(bind=engine)
         session = Session.configure(bind=engine)
         self.set_db_session()
-        print(f'ballot is here {ballot}')
         #block calculation here
-        block = Block(f"{ballot}", blockchain.get_latest_block().hash)
+
+        key = string_to_byte_array(self.key)
+
+
+        block = Block(data=f"{ballot}", previous_hash=blockchain.get_latest_block().hash)
         blockchain.add_block(block)
         latest_block = blockchain.get_latest_block()
         t = latest_block.timestamp
         t_str = t.strftime('%Y-%m-%d %H:%M:%S.%f')
-        print(f'block timestamp {t_str} is here')
         BC_array_to_cipher = [t_str, latest_block.data, latest_block.previous_hash, latest_block.hash]
         BC_data_joined = ','.join(BC_array_to_cipher)
-        key = string_to_byte_array(self.key)
+
         ciphertext_to_append = encrypt_message(key, BC_data_joined)
 
 
